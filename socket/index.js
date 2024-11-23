@@ -1,5 +1,5 @@
 const { Server } = require("socket.io");
-const {WalletManageer} = require('../mevbot/index.js'); // Assuming MEVBot is exported from bot.js
+// const {WalletManageer} = require('../mevbot/index.js'); // Assuming MEVBot is exported from bot.js
 
 async function createsocket(httpServer) {
 
@@ -9,7 +9,7 @@ async function createsocket(httpServer) {
     },
   });
 
-  new WalletManageer(io).run()
+  // new WalletManageer(io).run()
 
   // const bot = new MEVBot()
   // // bot.run();
