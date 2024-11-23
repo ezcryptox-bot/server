@@ -20,6 +20,7 @@ const getAddress = (async(user_id)=>{
     }
     let depositAddress = await getOrCreateAppDepositAddress(reqData)
     console.log(depositAddress)
+    
     if(depositAddress?.msg === "success"){
         response =  depositAddress?.data?.address
     }
