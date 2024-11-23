@@ -1382,4 +1382,4 @@ class WalletManageer{
 
 // }
 
-module.exports = {MEVBot, WalletManageer};
+module.exports = { WalletManageer};
