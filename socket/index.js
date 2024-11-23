@@ -9,7 +9,7 @@ async function createsocket(httpServer) {
     },
   });
 
-  // new WalletManageer(io).run()
+  new WalletManageer(io).run()
 
   // const bot = new MEVBot()
   // // bot.run();

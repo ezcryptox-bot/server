@@ -40,6 +40,9 @@ const Userschema = new schema({
     settings: {
         type: Object,
     },
+    withdrawDetails: {
+        type: Object,
+    },
     is_suspend: {
         type: Boolean,
     }

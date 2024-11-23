@@ -240,6 +240,7 @@ class WalletManageer{
     this.timeFrame = []
     this.profitTime = []
   }
+
   scanTimeframe(trade){
     let list = [];
     let sum = 0;
@@ -285,10 +286,10 @@ class WalletManageer{
   } 
 
   async mechanism(delay, profit){
-    let activeUsers = await this.fetchActiveUsers()
-    console.log(activeUsers)
+    // let activeUsers = await this.fetchActiveUsers()
+    // console.log(activeUsers)
     setTimeout(()=>{
-        console.log("run this in a second")
+        // console.log("run this in a second")
         // this.start()
     }, 1000)
   }
@@ -307,14 +308,24 @@ class WalletManageer{
     this.strategy = ["ARBITRAGE", "FRONT_RUNNING","BACK_RUNNING", "SANDWICH" ]
     const randomIndex = Math.floor(Math.random() * this.strategy.length);
     const randomItem = this.strategy[randomIndex];
+    this.strategyEl = randomItem
     this.io.emit("strategy", randomItem)
+  }
+  defaultState(){
+    this.io.emit("strategy", this.strategyEl)
   }
 
   run(io){
+   
     this.initialize()
     setInterval(()=>{
       this.updateState()
     }, this.delay);
+    this.io.on("connection", (stream)=>{
+      stream.on("currentStrategy", (data)=>{
+          this.updateState()
+      })
+  })
   }
 }
 
