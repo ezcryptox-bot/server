@@ -20,12 +20,13 @@ const getAddress = (async(user_id)=>{
     }
     let depositAddress = await getOrCreateAppDepositAddress(reqData)
     console.log(depositAddress)
-    
+
     if(depositAddress?.msg === "success"){
         response =  depositAddress?.data?.address
     }
     return response
 })
+
 const convertETHtoUSD = async()=> {
     let price = 0
     await axios.get(`https://api.poloniex.com/markets/ETH_USDT/price`)
