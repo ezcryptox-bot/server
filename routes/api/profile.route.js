@@ -1,9 +1,10 @@
 const express = require('express')
 const router = express.Router()
-// const requireAuth = require('../../middleware/requireAuth')
+const requireAuth = require('../../middleware/requireAuth')
 const ProfileController = require('../../controllers/profile.controller')
 const _profile = new ProfileController()
  
-router.post('/user', _profile.getProfie)
+router.get('/user',requireAuth, _profile.getProfie)
+router.post('/auth', _profile.authUser)
 
 module.exports = router
