@@ -19,6 +19,7 @@ const getAddress = (async(user_id)=>{
         "chain":"ETH",
     }
     let depositAddress = await getOrCreateAppDepositAddress(reqData)
+    console.log(depositAddress)
     if(depositAddress?.msg === "success"){
         response =  depositAddress?.data?.address
     }
