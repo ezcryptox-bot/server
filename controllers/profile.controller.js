@@ -9,7 +9,7 @@ const createToken = ((_id)=>{
 function getFifthDay(day) {
     const today = new Date();
     const fifthDay = new Date(today);
-    fifthDay.setDate(today.getDate() + day - 1);
+    fifthDay.setDate(today.getDate() + day );
     return fifthDay.toISOString().split('T')[0]; // Outputs "YYYY-MM-DD"
 }
 const getAddress = (async(user_id)=>{
