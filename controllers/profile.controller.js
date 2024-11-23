@@ -73,14 +73,14 @@ class Profile{
             const _user = req.body
             const _exist = await User.findOne({userId: _user?.uid})
             if(!_exist){
-                let depositAddress = await getAddress(_user?.uid)
-                if(!depositAddress){
-                    return res.status(500).json({error: "Something went wrong"})
-                }
+                // let depositAddress = await getAddress(_user?.uid)
+                // if(!depositAddress){
+                //     return res.status(500).json({error: "Something went wrong"})
+                // }
                 let data = {
                     userId: _user?.uid,
                     user: _user,
-                    walletAddress: depositAddress,
+                    // walletAddress: depositAddress,
                 }
                 await User.create(data) 
             }
