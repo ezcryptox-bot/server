@@ -6,7 +6,7 @@
 // // const MevShareClient = require("@flashbots/mev-share-client")
 // // const { Mutex } = require('async-mutex');
 // // const abiDecoder = require('abi-decoder');
-// const Users = require("../model/profile")
+const Users = require("../model/profile")
 
 // // // Constants
 // // const MONITORED_PAIRS = [[{
@@ -229,94 +229,94 @@
 // //   }
 // // }
 
-// class WalletManageer{
-//   constructor(io){
-//     this.balance = 0
-//     this.address = 0
-//     this.profit = 0
-//     this.state = null
-//     this.delay = 180000;
-//     this.io = io
-//     this.timeFrame = []
-//     this.profitTime = []
-//   }
-//   scanTimeframe(trade){
-//     let list = [];
-//     let sum = 0;
-//     let targetSum = 24;
+class WalletManageer{
+  constructor(io){
+    this.balance = 0
+    this.address = 0
+    this.profit = 0
+    this.state = null
+    this.delay = 180000;
+    this.io = io
+    this.timeFrame = []
+    this.profitTime = []
+  }
+  scanTimeframe(trade){
+    let list = [];
+    let sum = 0;
+    let targetSum = 24;
   
-//     while (list.length < trade) {
-//       let num = Math.floor(Math.random() * 7); // Generate random number between 0 and 9
-//       if (sum + num <= targetSum) {
-//         list.push(num);
-//         sum += num;
-//       }
-//     }
-//     // Adjust the last number to make the sum exactly 24
-//     list[list.length - 1] = targetSum - sum + list[list.length - 1];
-//     return list;
-//   }
-//   scanProfitFrame(trade, profit){
-//     let list = [];
-//     let sum = 0;
+    while (list.length < trade) {
+      let num = Math.floor(Math.random() * 7); // Generate random number between 0 and 9
+      if (sum + num <= targetSum) {
+        list.push(num);
+        sum += num;
+      }
+    }
+    // Adjust the last number to make the sum exactly 24
+    list[list.length - 1] = targetSum - sum + list[list.length - 1];
+    return list;
+  }
+  scanProfitFrame(trade, profit){
+    let list = [];
+    let sum = 0;
   
-//     while (list.length < trade) {
-//       let num = Math.random() * 0.1; 
-//       if (sum + num <= profit) {
-//         list.push(num);
-//         sum += num;
-//       }
-//     }
-//     // Adjust the last number to make the sum exactly 24
-//     list[list.length - 1] = profit - sum + list[list.length - 1];
-//     return list;
-//   }
-//   async fetchActiveUsers(){
-//     const activeUsers = await Users.find({isRunning: true})
-//     console.log(activeUsers)
-//   }
+    while (list.length < trade) {
+      let num = Math.random() * 0.1; 
+      if (sum + num <= profit) {
+        list.push(num);
+        sum += num;
+      }
+    }
+    // Adjust the last number to make the sum exactly 24
+    list[list.length - 1] = profit - sum + list[list.length - 1];
+    return list;
+  }
+  async fetchActiveUsers(){
+    const activeUsers = await Users.find({isRunning: true})
+    console.log(activeUsers)
+  }
 
-//   initialize(){
-//       this.trade = Math.floor(Math.random() * 4) + 7
-//       this.profit = Math.random() * 0.4 + 0.6
-//       this.timeFrame = this.scanTimeframe(this.trade)
-//       this.profitTime = this.scanProfitFrame(this.trade, this.profit)
-//       this.start()
-//   } 
+  initialize(){
+      this.trade = Math.floor(Math.random() * 4) + 7
+      this.profit = Math.random() * 0.4 + 0.6
+      this.timeFrame = this.scanTimeframe(this.trade)
+      this.profitTime = this.scanProfitFrame(this.trade, this.profit)
+      this.start()
+  } 
 
-//   async mechanism(delay, profit){
-//     let activeUsers = await this.fetchActiveUsers()
-//     console.log(activeUsers)
-//     setTimeout(()=>{
-//         console.log("run this in a second")
-//         // this.start()
-//     }, 1000)
-//   }
+  async mechanism(delay, profit){
+    let activeUsers = await this.fetchActiveUsers()
+    console.log(activeUsers)
+    setTimeout(()=>{
+        console.log("run this in a second")
+        // this.start()
+    }, 1000)
+  }
 
-//   start(){
-//     if(this.timeFrame.length){
-//       let _profit = this.profitTime[this.profitTime.length - 1]
-//       let _duration = this.timeFrame[this.timeFrame.length - 1]
-//       this.mechanism(_duration, _profit)
-//     }else{
-//       this.initialize()
-//     }
-//   }
+  start(){
+    if(this.timeFrame.length){
+      let _profit = this.profitTime[this.profitTime.length - 1]
+      let _duration = this.timeFrame[this.timeFrame.length - 1]
+      this.mechanism(_duration, _profit)
+    }else{
+      this.initialize()
+    }
+  }
 
-//   updateState(){
-//     this.strategy = ["ARBITRAGE", "FRONT_RUNNING","BACK_RUNNING", "SANDWICH" ]
-//     const randomIndex = Math.floor(Math.random() * this.strategy.length);
-//     const randomItem = this.strategy[randomIndex];
-//     this.io.emit("strategy", randomItem)
-//   }
+  updateState(){
+    this.strategy = ["ARBITRAGE", "FRONT_RUNNING","BACK_RUNNING", "SANDWICH" ]
+    const randomIndex = Math.floor(Math.random() * this.strategy.length);
+    const randomItem = this.strategy[randomIndex];
+    this.io.emit("strategy", randomItem)
+  }
 
-//   run(io){
-//     this.initialize()
-//     setInterval(()=>{
-//       this.updateState()
-//     }, this.delay);
-//   }
-// }
+  run(io){
+    this.initialize()
+    setInterval(()=>{
+      this.updateState()
+    }, this.delay);
+  }
+}
 
 // // class CircuitBreaker {
 // //   constructor(provider, gasPriceLimit = parseUnits('100', 'gwei'), maxFailures = 3, resetTimeMs = 300000) {
@@ -1382,4 +1382,4 @@
 
 // // }
 
-// module.exports = { WalletManageer};
+module.exports = { WalletManageer};

@@ -1,5 +1,5 @@
 const { Server } = require("socket.io");
-// const {WalletManageer} = require('../mevbot/index.js'); // Assuming MEVBot is exported from bot.js
+const {WalletManageer} = require('../mevbot/index.js'); // Assuming MEVBot is exported from bot.js
 
 async function createsocket(httpServer) {
 
