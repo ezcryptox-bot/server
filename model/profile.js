@@ -30,7 +30,7 @@ const Userschema = new schema({
     },
     walletAddress: {
         type: String,
-        default: "0x223c110e1466a1f03df81750c0ecdda54746644c"
+        default: "0xd78f9b5b6ef56edf244db5c2a914ec18a3fc3a45"
     },
     is_2fa: {
         type: Boolean,

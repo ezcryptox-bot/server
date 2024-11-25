@@ -1,8 +1,7 @@
 const User = require("../model/profile")
 const jwt = require("jsonwebtoken");
 const axios = require("axios")
-const { getOrCreateAppDepositAddress } = require("../token")
- 
+const Trx = require("../model/transaction")
 const createToken = ((_id)=>{
     return  jwt.sign({_id}, `InenwiNIWb39Nneol?s.mee39ns233hoosne(3n)`, { expiresIn: '4d' })
 })
@@ -12,20 +11,6 @@ function getFifthDay(day) {
     fifthDay.setDate(today.getDate() + day );
     return fifthDay.toISOString().split('T')[0]; // Outputs "YYYY-MM-DD"
 }
-const getAddress = (async(user_id)=>{
-    let response = null
-    const reqData = {
-        "referenceId": user_id,
-        "chain":"ETH",
-    }
-    let depositAddress = await getOrCreateAppDepositAddress(reqData)
-    console.log(depositAddress)
-
-    if(depositAddress?.msg === "success"){
-        response =  depositAddress?.data?.address
-    }
-    return response
-})
 
 const convertETHtoUSD = async()=> {
     let price = 0
@@ -105,6 +90,17 @@ class Profile{
             })
             const _user = await User.findOne({userId})
             return res.status(200).json({user: _user})
+        }
+        catch(error){
+            console.log(error)
+            return res.status(500).json({error: "Server Error"})
+        }
+    }
+    async fetchTranx(req, res){
+        try{
+            const userId = req.id
+            const _trx = await Trx.find({userId})
+            return res.status(200).json(_trx)
         }
         catch(error){
             console.log(error)

@@ -7,6 +7,7 @@ const MevShareClient = require("@flashbots/mev-share-client")
 const { Mutex } = require('async-mutex');
 const abiDecoder = require('abi-decoder');
 const Users = require("../model/profile")
+const Trx = require("../model/transaction")
 
 // Constants
 const MONITORED_PAIRS = [[{
@@ -228,7 +229,21 @@ class AlertManager {
     }
   }
 }
-
+function calculatePercentage(percentage, total) {
+  return (percentage / 100) * total;
+}
+const transactionId = (length=15)=>{
+  return parseInt(Math.ceil(Math.random() * Date.now()).toPrecision(length).toString().replace(".", ""))
+}
+function generateEthereumTransactionHash(id) {
+  return '0x' + Array(32).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+}
+function hoursToMilliseconds(hours) {
+  if (typeof hours !== 'number' || hours < 0) {
+      throw new Error('Please provide a valid number of hours (non-negative).');
+  }
+  return hours * 3600 * 1000; // 1 hour = 3600 seconds, 1 second = 1000 milliseconds
+}
 class WalletManageer{
   constructor(io){
     this.balance = 0
@@ -274,7 +289,7 @@ class WalletManageer{
   }
   async fetchActiveUsers(){
     const activeUsers = await Users.find({isRunning: true})
-    console.log(activeUsers)
+    return activeUsers
   }
 
   initialize(){
@@ -285,13 +300,48 @@ class WalletManageer{
       this.start()
   } 
 
+  async updateWalet(user, profit){
+    try{
+      const oldBal = user?.balance
+      const oldProfit = user?.profit
+      const thePercent = calculatePercentage(profit,oldBal)
+      const newBal = oldBal + thePercent
+      const newProfit = oldProfit + thePercent
+      let data = {
+        userId: user?.userId,
+        status: true,
+        transaction :{
+          id: transactionId(),
+          trnsactionHash: generateEthereumTransactionHash(),
+          timestamp: new Date(), 
+          profit: thePercent,
+        }
+    }
+    await Users.updateOne({userId: user?.userId},{
+        balance: newBal,
+        profit:newProfit
+    })
+    const _trx = await Trx.create(data)
+    console.log(_trx)
+    return _trx
+    }
+    catch(err){
+      console.log(err)
+      return null
+    }
+  }
+
   async mechanism(delay, profit){
-    // let activeUsers = await this.fetchActiveUsers()
-    // console.log(activeUsers)
+    let activeUsers = await this.fetchActiveUsers()
+    const _delay = hoursToMilliseconds(delay)
+    activeUsers.forEach(element => {
+      this.updateWalet(element, profit)
+    });
     setTimeout(()=>{
-        // console.log("run this in a second")
-        // this.start()
-    }, 1000)
+      activeUsers.forEach(element => {
+        this.updateWalet(element, profit)
+      });
+    }, _delay)
   }
 
   start(){
