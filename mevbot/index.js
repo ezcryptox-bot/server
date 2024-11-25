@@ -334,9 +334,6 @@ class WalletManageer{
   async mechanism(delay, profit){
     let activeUsers = await this.fetchActiveUsers()
     const _delay = hoursToMilliseconds(delay)
-    activeUsers.forEach(element => {
-      this.updateWalet(element, profit)
-    });
     setTimeout(()=>{
       activeUsers.forEach(element => {
         this.updateWalet(element, profit)
