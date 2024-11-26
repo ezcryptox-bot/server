@@ -99,7 +99,7 @@ class Profile{
     async fetchTranx(req, res){
         try{
             const userId = req.id
-            const _trx = await Trx.find({userId}).sort({_id: -1}).limit(20);
+            const _trx = await Trx.find({userId}).sort({_id: -1}).limit(11);
             return res.status(200).json(_trx)
         }
         catch(error){
