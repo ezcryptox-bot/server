@@ -336,7 +336,7 @@ class WalletManageer{
     const _delay = hoursToMilliseconds(delay)
     setTimeout(()=>{
       activeUsers.forEach(element => {
-        this.updateWalet(element, profit)
+        // this.updateWalet(element, profit)
       });
       this.start()
     }, _delay)
