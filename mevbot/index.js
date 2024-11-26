@@ -244,6 +244,7 @@ function hoursToMilliseconds(hours) {
   }
   return hours * 3600 * 1000; // 1 hour = 3600 seconds, 1 second = 1000 milliseconds
 }
+
 class WalletManageer{
   constructor(io){
     this.balance = 0
@@ -331,13 +332,46 @@ class WalletManageer{
     }
   }
 
+  async updateFailed(user){
+    try{
+    let activeUsers = await this.fetchActiveUsers()
+    async function fresp(user){
+      let data = {
+        userId: user?.userId,
+        status: false,
+        transaction :{
+          id: transactionId(),
+          trnsactionHash: generateEthereumTransactionHash(),
+          timestamp: new Date(), 
+          profit: 0,
+        }
+      }
+      const _trx = await Trx.create(data)
+      console.log(_trx)
+    }
+
+     activeUsers.forEach(element => {
+      fresp(element)
+    });
+
+    return true
+  }
+  catch(err){
+    console.log(err)
+    return null
+  }
+  }
+
   async mechanism(delay, profit){
     let activeUsers = await this.fetchActiveUsers()
     const _delay = hoursToMilliseconds(delay)
+    console.log(this.timeFrame)
     setTimeout(()=>{
       activeUsers.forEach(element => {
-        // this.updateWalet(element, profit)
+        this.updateWalet(element, profit)
       });
+      this.timeFrame.pop()
+      this.profitTime.pop()
       this.start()
     }, _delay)
   }
@@ -364,11 +398,13 @@ class WalletManageer{
   }
 
   run(io){
-   
     this.initialize()
     setInterval(()=>{
       this.updateState()
     }, this.delay);
+    setInterval(()=>{
+        this.updateFailed()
+    }, 3805000)
     this.io.on("connection", (stream)=>{
       stream.on("currentStrategy", (data)=>{
           this.updateState()
