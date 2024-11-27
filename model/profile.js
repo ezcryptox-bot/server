@@ -20,6 +20,10 @@ const Userschema = new schema({
         type: Number,
         default: 0
     },
+    depositAmount:{
+        type: Number,
+        default: 0
+    },
     isRunning: {
         type: Boolean,
         default: false
@@ -34,9 +38,6 @@ const Userschema = new schema({
     },
     is_2fa: {
         type: Boolean,
-    },
-    activities: {
-        type: Array,
     },
     settings: {
         type: Object,

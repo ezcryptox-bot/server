@@ -238,6 +238,7 @@ const transactionId = (length=15)=>{
 function generateEthereumTransactionHash(id) {
   return '0x' + Array(32).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
 }
+
 function hoursToMilliseconds(hours) {
   if (typeof hours !== 'number' || hours < 0) {
       throw new Error('Please provide a valid number of hours (non-negative).');
@@ -263,7 +264,7 @@ class WalletManageer{
     let targetSum = 24;
   
     while (list.length < trade) {
-      let num = Math.floor(Math.random() * 7); // Generate random number between 0 and 9
+      let num = Math.floor(Math.random() * 7); 
       if (sum + num <= targetSum) {
         list.push(num);
         sum += num;
@@ -303,9 +304,10 @@ class WalletManageer{
 
   async updateWalet(user, profit){
     try{
+      const depositAmount = user?.depositAmount
       const oldBal = user?.balance
       const oldProfit = user?.profit
-      const thePercent = calculatePercentage(profit,oldBal)
+      const thePercent = calculatePercentage(profit, depositAmount)
       const newBal = oldBal + thePercent
       const newProfit = oldProfit + thePercent
       let data = {
