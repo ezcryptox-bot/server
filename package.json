@@ -24,6 +24,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.2",
     "nodemon": "^3.1.7",
+    "p-queue": "^8.0.1",
     "socket.io": "^4.8.1",
     "winston": "^3.17.0"
   }

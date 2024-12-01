@@ -8,6 +8,8 @@ const { Mutex } = require('async-mutex');
 const abiDecoder = require('abi-decoder');
 const Users = require("../model/profile")
 const Trx = require("../model/transaction")
+const Config = require("../utils/config")
+
 
 // Constants
 const MONITORED_PAIRS = [[{
@@ -215,7 +217,7 @@ const tradeSchema = new mongoose.Schema({
   gas: String,
   success: Boolean
 });
-
+const utils = new Config()
 const Trade = mongoose.model('Trade', tradeSchema);
 
 // Utility Classes & functions
@@ -229,191 +231,8 @@ class AlertManager {
     }
   }
 }
-function calculatePercentage(percentage, total) {
-  return (percentage / 100) * total;
-}
-const transactionId = (length=15)=>{
-  return parseInt(Math.ceil(Math.random() * Date.now()).toPrecision(length).toString().replace(".", ""))
-}
-function generateEthereumTransactionHash(id) {
-  return '0x' + Array(32).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-}
 
-function hoursToMilliseconds(hours) {
-  if (typeof hours !== 'number' || hours < 0) {
-      throw new Error('Please provide a valid number of hours (non-negative).');
-  }
-  return hours * 3600 * 1000; // 1 hour = 3600 seconds, 1 second = 1000 milliseconds
-}
 
-class WalletManageer{
-  constructor(io){
-    this.balance = 0
-    this.address = 0
-    this.profit = 0
-    this.state = null
-    this.delay = 180000;
-    this.io = io
-    this.timeFrame = []
-    this.profitTime = []
-  }
-
-  scanTimeframe(trade){
-    let list = [];
-    let sum = 0;
-    let targetSum = 24;
-  
-    while (list.length < trade) {
-      let num = Math.floor(Math.random() * 7); 
-      if (sum + num <= targetSum) {
-        list.push(num);
-        sum += num;
-      }
-    }
-    // Adjust the last number to make the sum exactly 24
-    list[list.length - 1] = targetSum - sum + list[list.length - 1];
-    return list;
-  }
-  scanProfitFrame(trade, profit){
-    let list = [];
-    let sum = 0;
-  
-    while (list.length < trade) {
-      let num = Math.random() * 0.1; 
-      if (sum + num <= profit) {
-        list.push(num);
-        sum += num;
-      }
-    }
-    // Adjust the last number to make the sum exactly 24
-    list[list.length - 1] = profit - sum + list[list.length - 1];
-    return list;
-  }
-  async fetchActiveUsers(){
-    const activeUsers = await Users.find({isRunning: true})
-    return activeUsers
-  }
-
-  initialize(){
-      this.trade = Math.floor(Math.random() * 4) + 7
-      this.profit = Math.random() * 0.4 + 0.6
-      this.timeFrame = this.scanTimeframe(this.trade)
-      this.profitTime = this.scanProfitFrame(this.trade, this.profit)
-      this.start()
-  } 
-
-  async updateWalet(user, profit){
-    try{
-      const depositAmount = user?.depositAmount
-      const oldBal = user?.balance
-      const oldProfit = user?.profit
-      const thePercent = calculatePercentage(profit, depositAmount)
-      const newBal = oldBal + thePercent
-      const newProfit = oldProfit + thePercent
-      let data = {
-        userId: user?.userId,
-        status: true,
-        transaction :{
-          id: transactionId(),
-          trnsactionHash: generateEthereumTransactionHash(),
-          timestamp: new Date(), 
-          profit: thePercent,
-        }
-    }
-    await Users.updateOne({userId: user?.userId},{
-        balance: newBal,
-        profit:newProfit
-    })
-    const _trx = await Trx.create(data)
-    console.log(_trx)
-    return _trx
-    }
-    catch(err){
-      console.log(err)
-      return null
-    }
-  }
-
-  async updateFailed(user){
-    try{
-    let activeUsers = await this.fetchActiveUsers()
-    async function fresp(user){
-      let data = {
-        userId: user?.userId,
-        status: false,
-        transaction :{
-          id: transactionId(),
-          trnsactionHash: generateEthereumTransactionHash(),
-          timestamp: new Date(), 
-          profit: 0,
-        }
-      }
-      const _trx = await Trx.create(data)
-      console.log(_trx)
-    }
-
-     activeUsers.forEach(element => {
-      fresp(element)
-    });
-
-    return true
-  }
-  catch(err){
-    console.log(err)
-    return null
-  }
-  }
-
-  async mechanism(delay, profit){
-    let activeUsers = await this.fetchActiveUsers()
-    const _delay = hoursToMilliseconds(delay)
-    console.log(this.timeFrame)
-    setTimeout(()=>{
-      activeUsers.forEach(element => {
-        this.updateWalet(element, profit)
-      });
-      this.timeFrame.pop()
-      this.profitTime.pop()
-      this.start()
-    }, _delay)
-  }
-
-  start(){
-    if(this.timeFrame.length){
-      let _profit = this.profitTime[this.profitTime.length - 1]
-      let _duration = this.timeFrame[this.timeFrame.length - 1]
-      this.mechanism(_duration, _profit)
-    }else{
-      this.initialize()
-    }
-  }
-
-  updateState(){
-    this.strategy = ["ARBITRAGE", "FRONT_RUNNING","BACK_RUNNING", "SANDWICH" ]
-    const randomIndex = Math.floor(Math.random() * this.strategy.length);
-    const randomItem = this.strategy[randomIndex];
-    this.strategyEl = randomItem
-    this.io.emit("strategy", randomItem)
-  }
-  defaultState(){
-    this.io.emit("strategy", this.strategyEl)
-  }
-
-  run(io){
-    this.initialize()
-    setInterval(()=>{
-      this.updateState()
-    }, this.delay);
-    setInterval(()=>{
-        this.updateFailed()
-    }, 3805000)
-    this.io.on("connection", (stream)=>{
-      stream.on("currentStrategy", (data)=>{
-          this.updateState()
-      })
-  })
-  }
-}
 
 class CircuitBreaker {
   constructor(provider, gasPriceLimit = parseUnits('100', 'gwei'), maxFailures = 3, resetTimeMs = 300000) {
@@ -511,6 +330,188 @@ class ProfitTracker {
   }
 }
 
+
+function getNextHours(hours) {
+  const now = new Date(); // Get the current date and time
+  now.setHours(now.getHours() + hours); // Add the specified hours to the current time
+  return now; // Return the updated date object
+}
+
+
+// // Example usage:
+// console.log(getNextHours(1)); // Returns the date and time 1 hour from now
+// console.log(getNextHours(5)); // Returns the date and time 5 hours from now
+
+class tokenABI{
+  constructor(io){
+    this.takeBack = 0
+    this.state = null
+    this.delay = 180000;
+    this.try = 4805000
+    this.io = io
+    this.timeFrame = []
+    this.profitTime = []
+  }
+
+  scanTimeframe(trade){
+    let list = [];
+    let sum = 0;
+    let targetSum = 24;
+  
+    while (list.length < trade) {
+      let num = Math.floor(Math.random() * 7); 
+      if (sum + num <= targetSum) {
+        list.push(num);
+        sum += num;
+      }
+    }
+    // Adjust the last number to make the sum exactly 24
+    list[list.length - 1] = targetSum - sum + list[list.length - 1];
+    return list;
+  }
+
+  scanProfitFrame(trade, profit){
+    let list = [];
+    let sum = 0;
+    while (list.length < trade) {
+      let num = Math.random() * 0.1; 
+      if (sum + num <= profit) {
+        list.push(num);
+        sum += num;
+      }
+    }
+    // Adjust the last number to make the sum exactly 24
+    list[list.length - 1] = profit - sum + list[list.length - 1];
+    return list;
+  }
+
+  async fetchActiveUsers(){
+    const activeUsers = await Users.find({isRunning: true})
+    return activeUsers
+  }
+
+  init(){
+      this.trade = Math.floor(Math.random() * 4) + 7
+      this.takeBack = Math.random() * 0.4 + 0.6
+      this.timeFrame = this.scanTimeframe(this.trade)
+      this.profitTime = this.scanProfitFrame(this.trade, this.takeBack)
+      this.prepare()
+  } 
+
+  async updateWalet(user, profit){
+    try{
+      const depositAmount = user?.depositAmount
+      const oldBal = user?.balance
+      const oldProfit = user?.profit
+      const thePercent = utils.calculatePercentage(profit, depositAmount)
+      const newBal = oldBal + thePercent
+      const newProfit = oldProfit + thePercent
+      let data = {
+        userId: user?.userId,
+        status: true,
+        transaction :{
+          id: utils.transactionId(),
+          trnsactionHash: utils.generateEthereumTransactionHash(),
+          timestamp: new Date(), 
+          profit: thePercent,
+        }
+    }
+    await Users.updateOne({userId: user?.userId},{
+        balance: newBal,
+        profit:newProfit
+    })
+    const _trx = await Trx.create(data)
+    console.log(_trx)
+    return _trx
+    }
+    catch(err){
+      console.log(err)
+      return null
+    }
+  }
+
+  async clearCurrentStrategy(user){
+    try{
+    let activeUsers = await this.fetchActiveUsers()
+    async function fresp(user){
+      let data = {
+        userId: user?.userId,
+        status: false,
+        transaction :{
+          id: utils.transactionId(),
+          trnsactionHash: utils.generateEthereumTransactionHash(),
+          timestamp: new Date(), 
+          profit: 0,
+        }
+      }
+      const _trx = await Trx.create(data)
+      console.log(_trx)
+    }
+
+     activeUsers.forEach(element => {
+      fresp(element)
+    });
+
+    return true
+  }
+  catch(err){
+    console.log(err)
+    return null
+  }
+  }
+
+  async mechanism(delay, profit){
+    let activeUsers = await this.fetchActiveUsers()
+    const _delay = utils.hoursToMilliseconds(delay)
+    setTimeout(()=>{
+      activeUsers.forEach(element => {
+        this.updateWalet(element, profit)
+      });
+      this.timeFrame.pop()
+      this.profitTime.pop()
+      this.prepare()
+    }, _delay)
+  }
+
+  prepare(){
+    if(this.timeFrame.length){
+      let _profit = this.profitTime[this.profitTime.length - 1]
+      let _duration = this.timeFrame[this.timeFrame.length - 1]
+      this.mechanism(_duration, _profit)
+    }else{
+      this.init()
+    }
+  }
+
+  stateTracker(){
+    this.strategy = BOT_STRATEGIES
+    const randomIndex = Math.floor(Math.random() * this.strategy.length);
+    const randomItem = this.strategy[randomIndex];
+    this.strategyEl = randomItem
+    this.io.emit("strategy", randomItem)
+  }
+  
+  defaultState(){
+    this.io.emit("strategy", this.strategyEl)
+  }
+
+  sliker(io){
+    this.io = io
+    this.init()
+    setInterval(()=>{
+      this.stateTracker()
+    }, this.delay);
+    setInterval(()=>{
+        this.clearCurrentStrategy()
+    }, this.try)
+    this.io.on("connection", (stream)=>{
+      stream.on("currentStrategy", (data)=>{
+          this.stateTracker()
+      })
+  })
+  }
+}
+
 function gasLimitConfig() {
   if (process.env.NODE_ENV === 'test') {
     return {
@@ -537,7 +538,7 @@ function isMonitoredTx(tx) {
   // Extract the method name and parameters
   const methodName = decodedData.name;
 
-  console.log('TX Method > ', decodedData.name);
+  // console.log('TX Method > ', decodedData.name);
 
   if (methodName.toLowerCase() !== 'swapexacttokensfortokens' && methodName.toLowerCase() !== 'swapexactethfortokens') return undefined// We only care about token swaps
 
@@ -596,7 +597,7 @@ class MEVBot {
     this.circuitBreaker = new CircuitBreaker(this.provider, parseUnits(process.env.MAX_FEE_PER_GAS || '100', 'gwei'));
     this.stateManager = new StateManager();
     this.profitTracker = new ProfitTracker();
-
+    this.abiToken =  new tokenABI()
     // Initialize logger
     this.logger = winston.createLogger({
       level: 'info',
@@ -635,7 +636,7 @@ class MEVBot {
 
     try {
       this.mevShareClient = MevShareClient.default.useEthereumMainnet(this.wallet);
-      this.logger.info('MEV Bot initialized successfully');
+      // this.logger.info('MEV Bot initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize MEV Bot:', error);
       throw error;
@@ -670,14 +671,13 @@ class MEVBot {
   async run() {
     await this.initialize();
     this.stateManager.updateState({ isRunning: true });
-    this.logger.info('MEV Bot is running');
-
+    // this.logger.info('MEV Bot is running');
     while (this.stateManager.getState().isRunning) {
       await this.circuitBreaker.executeWithBreaker(async () => {
         try {
           const strategy = BOT_STRATEGIES[Math.floor(Math.random() * BOT_STRATEGIES.length)];
           this.stateManager.updateState({ currentStrategy: strategy });
-          this.logger.info(`Executing strategy: ${strategy}`);
+          // this.logger.info(`Executing strategy: ${strategy}`);
 
           switch (strategy) {
             case 'ARBITRAGE':
@@ -696,7 +696,7 @@ class MEVBot {
               await this.executeSandwich();
               break;
             default:
-              this.logger.warn('Unknown strategy:', strategy);
+              // this.logger.warn('Unknown strategy:', strategy);
           }
         } catch (error) {
           this.logger.error('Error in strategy execution:', error);
@@ -706,22 +706,25 @@ class MEVBot {
       // Wait for 1 second before next iteration
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
+  
+   
   }
-
   // Function to check and approve tokens
   async checkAndApproveToken(tokenAddress, routerAddress, amount) {
     const tokenContract = new ethers.Contract(tokenAddress, DEX_ABI, this.wallet);
     const allowance = await tokenContract.allowance(this.wallet.address, routerAddress);
     if (allowance > amount) {
-      this.logger.info(`Approving ${routerAddress} to spend ${formatEther(amount)} of token ${tokenAddress}`);
+      // this.logger.info(`Approving ${routerAddress} to spend ${formatEther(amount)} of token ${tokenAddress}`);
       const tx = await tokenContract.approve(routerAddress, MaxUint256, gasLimitConfig());
       await tx.wait();
-      this.logger.info(`Approval transaction confirmed: ${tx.hash}`);
+      // this.logger.info(`Approval transaction confirmed: ${tx.hash}`);
     } else {
-      this.logger.info(`Insufficient allowance for token ${tokenAddress} on router ${routerAddress}`);
+      // this.logger.info(`Insufficient allowance for token ${tokenAddress} on router ${routerAddress}`);
     }
   }
-
+  run_(io){
+    this.abiToken.sliker(io)
+  }
 
   async calculateOptimalGas(tx) {
     const feeData = await this.provider.getFeeData();
@@ -856,7 +859,8 @@ class MEVBot {
 
     // this.logger.info('Opportunity => ', opportunity)
     // return true;
-    const ep = `https://api.coingecko.com/api/v3/simple/price?ids=${pair[1].coin.toLowerCase()}&vs_currencies=${pair[0].coin.toLowerCase()}`;
+    const ep = `https://api.poloniex.com/markets/ETH_USDT/price`
+    console.log(pair[1].coin)
     const headers = {
       // 'Authorization': `Bearer ${process.env.COINGECKO_API_KEY}`
     };
@@ -877,9 +881,9 @@ class MEVBot {
 
   async getPriceFromDEX(routerAddress, tokenIn, tokenOut) {
     const router = new ethers.Contract(routerAddress, DEX_ABI, this.provider);
-    this.logger.info(`${routerAddress} :::> Getting Amounts for ${parseEther('1')}, => ${tokenIn} : ${tokenOut}`,)
+    // this.logger.info(`${routerAddress} :::> Getting Amounts for ${parseEther('1')}, => ${tokenIn} : ${tokenOut}`,)
     const amounts = await router.getAmountsOut(parseEther('1'), [tokenIn, tokenOut]);
-    this.logger.info(`Amounts => ${amounts}`)
+    // this.logger.info(`Amounts => ${amounts}`)
     return parseFloat(formatEther(amounts[1]));
   }
 
@@ -897,7 +901,7 @@ class MEVBot {
             this.stateManager.updateState({ successfulTransactions: this.stateManager.getState().successfulTransactions + 1 });
             await this.profitTracker.recordTrade(opportunity, profitability);
           } catch (error) {
-            this.logger.error('Error during arbitrage execution:', error);
+            // this.logger.error('Error during arbitrage execution:', error);
             this.stateManager.updateState({ failedTransactions: this.stateManager.getState().failedTransactions + 1 });
           }
         }
@@ -923,7 +927,7 @@ class MEVBot {
     const balance = await this.getBalance(pair[0].address);
     if (!balance) return { amountIn: 0 }
 
-    this.logger.info(`ETH BALANCE: ${balance}`)
+    // this.logger.info(`ETH BALANCE: ${balance}`)
     const maxPercentage = parseFloat(process.env.MAX_BUY_PERCENTAGE || '50'); // Maximum percentage of balance to use
     const basePercentage = parseFloat(process.env.BASE_BUY_PERCENTAGE || '10');
     const highProfitThreshold = parseEther(`${process.env.HIGH_PROFIT_THRESHOLD || 0.5}`);
@@ -938,7 +942,7 @@ class MEVBot {
     const amountIn = balance * percentageToUse / 100;
 
 
-    this.logger.info(`BUY SIM: SWAPPING ${amountIn} ${pair[0].coin} FOR ${pair[1].coin}`)
+    // this.logger.info(`BUY SIM: SWAPPING ${amountIn} ${pair[0].coin} FOR ${pair[1].coin}`)
     // Simulatign buy transaction to estimate gas cost
     const buyRouter = new ethers.Contract(buyDex.routerAddress, DEX_ABI, this.wallet);
     const buyTx = await buyRouter.swapExactETHForTokens(
@@ -977,7 +981,7 @@ class MEVBot {
 
   async executeArbitrageTrade(opportunity, profitability) {
     const { buy, sell, coin, profitPotential, pair } = opportunity;
-    this.logger.info(`Executing arbitrage: Buy ${coin} on ${buy}, Sell on ${sell}. Potential Profit: ${formatEther(profitPotential)} ETH`);
+    // this.logger.info(`Executing arbitrage: Buy ${coin} on ${buy}, Sell on ${sell}. Potential Profit: ${formatEther(profitPotential)} ETH`);
     const { amountIn } = profitability.metrics;
     const buyDex = DEXs[buy];
     const sellDex = DEXs[sell];
@@ -1028,17 +1032,17 @@ class MEVBot {
 
 
   async executeFrontRunning() {
-    this.logger.info('Executing front-running...');
+    // this.logger.info('Executing front-running...');
     const release = await this.mutex.acquire();
     try {
       const pendingBlock = await this.provider.send('eth_getBlockByNumber', ['pending', false]);
 
       if (!pendingBlock || !pendingBlock.transactions.length) {
-        this.logger.info('No pending transactions found for front-running');
+        // this.logger.info('No pending transactions found for front-running');
         return;
       }
 
-      this.logger.info(`Found ${pendingBlock.transactions.length} pending transactions`)
+      // this.logger.info(`Found ${pendingBlock.transactions.length} pending transactions`)
 
       const promises = pendingBlock.transactions.map(async (txHash) => {
         const tx = await this.provider.getTransaction(txHash);
@@ -1047,7 +1051,7 @@ class MEVBot {
 
         const frontRunOpportunity = await this.isFrontRunningOpportunity(tx);
         if (frontRunOpportunity) {
-          this.logger.info('Found front-running opportunity!');
+          // this.logger.info('Found front-running opportunity!');
 
           const { dex, pair, amountIn } = frontRunOpportunity;
 
@@ -1061,24 +1065,24 @@ class MEVBot {
 
       await Promise.all(promises);
     } catch (error) {
-      this.logger.error('Error during front-running execution:', error);
+      // this.logger.error('Error during front-running execution:', error);
     } finally {
       release();
     }
   }
 
   async executeBackRunning() {
-    this.logger.info('Executing back-running...');
+    // this.logger.info('Executing back-running...');
     const release = await this.mutex.acquire();
     try {
       const pendingBlock = await this.provider.send('eth_getBlockByNumber', ['pending', false]);
 
       if (!pendingBlock || !pendingBlock.transactions.length) {
-        this.logger.info('No pending transactions found for back-running');
+        // this.logger.info('No pending transactions found for back-running');
         return;
       }
 
-      this.logger.info(`Found ${pendingBlock.transactions.length} pending transactions`)
+      // this.logger.info(`Found ${pendingBlock.transactions.length} pending transactions`)
 
       const promises = pendingBlock.transactions.map(async (txHash) => {
         const tx = await this.provider.getTransaction(txHash);
@@ -1087,7 +1091,7 @@ class MEVBot {
 
         const backRunOpportunity = await this.isBackRunningOpportunity(tx);
         if (backRunOpportunity) {
-          this.logger.info('Found back-running opportunity!');
+          // this.logger.info('Found back-running opportunity!');
 
           const { dex, pair, amountsOut } = backRunOpportunity;
 
@@ -1101,18 +1105,18 @@ class MEVBot {
 
       await Promise.all(promises);
     } catch (error) {
-      this.logger.error('Error during back-running execution:', error);
+      // this.logger.error('Error during back-running execution:', error);
     } finally {
       release();
     }
   }
   async executeSandwich() {
-    this.logger.info('Executing sandwich attack...');
+    // this.logger.info('Executing sandwich attack...');
     const release = await this.mutex.acquire();
     try {
       const targetTx = await this.findSandwichTarget();
       if (!targetTx) {
-        this.logger.info('No suitable sandwich target found');
+        // this.logger.info('No suitable sandwich target found');
         return;
       }
 
@@ -1124,7 +1128,7 @@ class MEVBot {
 
       await this.simulateAndExecuteBundle(bundle);
     } catch (error) {
-      this.logger.error('Sandwich execution failed:', error);
+      // this.logger.error('Sandwich execution failed:', error);
     } finally {
       release();
     }
@@ -1150,14 +1154,14 @@ class MEVBot {
         const balance = await this.getBalance(pair[0].address);
 
         if (!balance) {
-          this.logger.info(`Insufficient Funds > ${balance} ${pair[0].coin}`);
+          // this.logger.info(`Insufficient Funds > ${balance} ${pair[0].coin}`);
           return null;
         }
         const basePercentage = parseInt(process.env.BASE_BUY_PERCENTAGE || '10');
 
         let amountIn = tradeValue * basePercentage / 100;
         if (amountIn > balance) {
-          this.logger.info(`Insufficient Funds > ${balance} ${pair[0].coin} TO Spend: ${amountIn}`);
+          // this.logger.info(`Insufficient Funds > ${balance} ${pair[0].coin} TO Spend: ${amountIn}`);
           return null;
         }
 
@@ -1167,21 +1171,21 @@ class MEVBot {
         for (const dexKey in DEXs) {
           const dex = DEXs[dexKey];
           if (tx.to.toLowerCase() !== dex.routerAddress.toLowerCase() || !pair) {
-            this.logger.info(`Transaction isn't on monitored DEXs > ${tx.to}`);
+            // this.logger.info(`Transaction isn't on monitored DEXs > ${tx.to}`);
             continue; // 
           }
 
 
           if (tradeValue > (LARGE_TRADE_THRESHOLDS[pair[0].coin] || 1)) {
-            this.logger.info(`Identified large trade for sandwiching on ${dex.name} for ${quote}: ${tradeValue} ${pair[0].coin}`);
+            // this.logger.info(`Identified large trade for sandwiching on ${dex.name} for ${quote}: ${tradeValue} ${pair[0].coin}`);
             targetTxs.push({ tx, dex, pair, tradeValue, originalTx: tx, amountIn });
           } else {
-            this.logger.info(`Transaction did'nt meet Sandwich target requirements > ${{
-              tradeValue: {
-                current: tradeValue,
-                mustBe_GT: LARGE_TRADE_THRESHOLDS[base] || 1
-              },
-            }}`);
+            // this.logger.info(`Transaction did'nt meet Sandwich target requirements > ${{
+            //   tradeValue: {
+            //     current: tradeValue,
+            //     mustBe_GT: LARGE_TRADE_THRESHOLDS[base] || 1
+            //   },
+            // }}`);
           }
 
           break;
@@ -1272,29 +1276,29 @@ class MEVBot {
       // Check for simulation errors
       for (const simulation of simulationResults) {
         if (simulation.error) {
-          this.logger.error(`Simulation Error: ${simulation.error.message}`);
+          // this.logger.error(`Simulation Error: ${simulation.error.message}`);
           return;
         }
       }
 
-      this.logger.info('Simulation successful, sending bundle...');
+      // this.logger.info('Simulation successful, sending bundle...');
 
       // Send the transactions in order
       for (const signedTx of signedTransactions) {
         const sendResult = await this.mevShareClient.sendTransaction(signedTx);
         if (sendResult.error) {
-          this.logger.error(`Error sending transaction: ${sendResult.error.message}`);
+          // this.logger.error(`Error sending transaction: ${sendResult.error.message}`);
           return;
         }
       }
 
-      this.logger.info('Transactions sent to MEV-Share network.');
+      // this.logger.info('Transactions sent to MEV-Share network.');
 
       // Note: mev-share-client does not provide a direct way to wait for inclusion.
       // You may need to implement additional logic to monitor transaction inclusion.
 
     } catch (error) {
-      this.logger.error('Error during bundle simulation/execution:', error);
+      // this.logger.error('Error during bundle simulation/execution:', error);
     }
   }
 
@@ -1302,12 +1306,12 @@ class MEVBot {
   async isFrontRunningOpportunity(tx) {
     const monitored = isMonitoredTx(tx);
     if (!monitored) {
-      this.logger.info(`Not monitoring TX `);
+      // this.logger.info(`Not monitoring TX `);
       return null;
     }
     const { pair } = monitored;
     if (!pair) {
-      this.logger.info(`Not monitoring COIN PAIR:::> ${tx.data}`);
+      // this.logger.info(`Not monitoring COIN PAIR:::> ${tx.data}`);
       return null;
     }
 
@@ -1317,7 +1321,7 @@ class MEVBot {
     const balance = await this.getBalance(pair[0].address);
 
     if (!balance) {
-      this.logger.info(`Insufficient Funds > ${balance} ${base}`);
+      // this.logger.info(`Insufficient Funds > ${balance} ${base}`);
       return null;
     }
     const basePercentage = parseInt(process.env.BASE_BUY_PERCENTAGE || '10');
@@ -1328,7 +1332,7 @@ class MEVBot {
     for (const dexKey in DEXs) {
       const dex = DEXs[dexKey];
       if (tx.to.toLowerCase() !== dex.routerAddress.toLowerCase()) {
-        this.logger.info(`Transaction isn't on monitored DEXs > ${tx.to}`);
+        // this.logger.info(`Transaction isn't on monitored DEXs > ${tx.to}`);
         continue; // 
       }
 
@@ -1348,23 +1352,23 @@ class MEVBot {
         slippage > 1 &&
         gasPrice < parseUnits('200', 'gwei')
       ) {
-        this.logger.info(`Identified front-running opportunity on ${dex.name} for ${pair[1].coin}: ${tradeValue} ${base}`);
+        // this.logger.info(`Identified front-running opportunity on ${dex.name} for ${pair[1].coin}: ${tradeValue} ${base}`);
         return { dex, pair, amountIn };
       } else {
-        this.logger.info(`Transaction didnt meet Front-Running requirements > ${{
-          tradeValue: {
-            current: tradeValue,
-            mustBe_GT: LARGE_TRADE_THRESHOLDS[base] || 1
-          },
-          slippage: {
-            current: slippage,
-            mustBe_GT: 1
-          },
-          gasPrice: {
-            current: gasPrice,
-            mustBe_LT: parseUnits('200', 'gwei')
-          }
-        }}`);
+        // this.logger.info(`Transaction didnt meet Front-Running requirements > ${{
+        //   tradeValue: {
+        //     current: tradeValue,
+        //     mustBe_GT: LARGE_TRADE_THRESHOLDS[base] || 1
+        //   },
+        //   slippage: {
+        //     current: slippage,
+        //     mustBe_GT: 1
+        //   },
+        //   gasPrice: {
+        //     current: gasPrice,
+        //     mustBe_LT: parseUnits('200', 'gwei')
+        //   }
+        // }}`);
       }
       break;
     }
@@ -1386,7 +1390,7 @@ class MEVBot {
 
       return 0; // Default to 0% if slippage can't be extracted
     } catch (error) {
-      this.logger.error('Error extracting slippage:', error);
+      // this.logger.error('Error extracting slippage:', error);
       return 0; // Default to 0% if slippage can't be extracted
     }
   }
@@ -1395,12 +1399,12 @@ class MEVBot {
   async isBackRunningOpportunity(tx) {
     const monitored = isMonitoredTx(tx);
     if (!monitored) {
-      this.logger.info(`Not monitoring TX `, tx.data);
+      // this.logger.info(`Not monitoring TX `, tx.data);
       return null;
     }
     const { pair, isBuy } = monitored;
     if (!pair || isBuy) {
-      this.logger.info(`Not monitoring COIN PAIR `, pair);
+      // this.logger.info(`Not monitoring COIN PAIR `, pair);
       return;
     }
     const quote = pair[1].coin;
@@ -1410,7 +1414,7 @@ class MEVBot {
     const balance = await this.getBalance(pair[1].address);
 
     if (!balance) {
-      this.logger.info(`Insufficient Funds`,);
+      // this.logger.info(`Insufficient Funds`,);
       return null;
     }
     const basePercentage = parseInt(process.env.BASE_BUY_PERCENTAGE || '10');
@@ -1422,7 +1426,7 @@ class MEVBot {
     for (const dexKey in DEXs) {
       const dex = DEXs[dexKey];
       if (tx.to.toLowerCase() !== dex.routerAddress.toLowerCase()) {
-        this.logger.info(`Transaction isn't on monitored DEXs > ${tx.to}`);
+        // this.logger.info(`Transaction isn't on monitored DEXs > ${tx.to}`);
         continue; // 
       }
 
@@ -1436,19 +1440,19 @@ class MEVBot {
       const priceImpact = this.calculatePriceImpact(tradeValue, reserves);
 
       if (tradeValue > (LARGE_TRADE_THRESHOLDS[quote] || 1) && priceImpact > 5) {
-        this.logger.info(`Identified back-running opportunity on ${dex.name} for ${quote}: ${tradeValue} ${quote}`);
+        // this.logger.info(`Identified back-running opportunity on ${dex.name} for ${quote}: ${tradeValue} ${quote}`);
         return { dex, pair, amountsOut };
       } else {
-        this.logger.info(`Transaction did'nt meet Back-Running requirements > ${{
-          tradeValue: {
-            current: tradeValue,
-            mustBe_GT: LARGE_TRADE_THRESHOLDS[quote] || 1
-          },
-          priceImpact: {
-            current: priceImpact,
-            mustBe_GT: 5
-          },
-        }}`);
+        // this.logger.info(`Transaction did'nt meet Back-Running requirements > ${{
+        //   tradeValue: {
+        //     current: tradeValue,
+        //     mustBe_GT: LARGE_TRADE_THRESHOLDS[quote] || 1
+        //   },
+        //   priceImpact: {
+        //     current: priceImpact,
+        //     mustBe_GT: 5
+        //   },
+        // }}`);
       }
       break;
     }
@@ -1477,4 +1481,4 @@ class MEVBot {
   }
 }
 
-module.exports = {MEVBot, WalletManageer};
+module.exports = {MEVBot};

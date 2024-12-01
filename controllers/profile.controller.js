@@ -8,7 +8,7 @@ const createToken = ((_id)=>{
 function getFifthDay(day) {
     const today = new Date();
     const fifthDay = new Date(today);
-    fifthDay.setDate(today.getDate() + day );
+    fifthDay.setDate(today.getDate() + day + 1 );
     return fifthDay.toISOString().split('T')[0]; // Outputs "YYYY-MM-DD"
 }
 
@@ -84,12 +84,35 @@ class Profile{
             const withdrawDate = getFifthDay(data.day)
             const _withdrawDate = new Date(withdrawDate)
             await User.updateOne({userId},{
-                withdrawDetails: data,
                 nextWithdraw: _withdrawDate,
                 isRunning: true
             })
             const _user = await User.findOne({userId})
             return res.status(200).json({user: _user})
+        }
+        catch(error){
+            console.log(error)
+            return res.status(500).json({error: "Server Error"})
+        }
+    }
+    async walo(req, res){
+        const { data } = req.body
+        try{
+            const {userId} = req.params
+            const _user = await User.findOne({userId})
+            if(_user?.balance === 0){
+                return res.status(500).json({user: _user, error: "Insufficient Funds"})
+            }
+            if(_user?.isRunning){
+                return res.status(500).json({user: _user, error: "You can't withdraw till after the coundown"})
+            }
+            if(_user?.withdrawDetails?.status){
+                return res.status(500).json({user: _user, error: "Your withdrawal Order is on the way"})
+            }
+            await User.updateOne({userId},{
+                withdrawDetails: data,
+            })
+            return res.status(200).json({user: _user, msg: "Successfully withdrawn " + _user?.balance})
         }
         catch(error){
             console.log(error)

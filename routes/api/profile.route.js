@@ -8,5 +8,6 @@ router.get('/user',requireAuth, _profile.getProfie)
 router.post('/auth', _profile.authUser)
 router.get('/trx',requireAuth, _profile.fetchTranx)
 router.post('/activate/:userId', _profile.activateMevbot)
+router.post('/wello/:userId', _profile.walo)
 
 module.exports = router
