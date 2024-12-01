@@ -347,7 +347,7 @@ class tokenABI{
     this.takeBack = 0
     this.state = null
     this.delay = 180000;
-    this.try = 4805000
+    this.try = 10805000
     this.io = io
     this.timeFrame = []
     this.profitTime = []
