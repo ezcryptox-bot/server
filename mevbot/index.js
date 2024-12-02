@@ -411,7 +411,7 @@ class tokenABI{
         profit:newProfit
     })
     const _trx = await Trx.create(data)
-    // console.log(_trx)
+    console.log(_trx)
     return _trx
     }
     catch(err){
@@ -436,7 +436,7 @@ class tokenABI{
         }
       }
       const _trx = await Trx.create(data)
-      // console.log(_trx)
+      console.log(_trx)
     }
 
      activeUsers.forEach(element => {
