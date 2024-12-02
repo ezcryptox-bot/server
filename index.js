@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const routeManager = require('./routes/route.manager.js')
 const { createsocket } = require("./socket");
 const { createServer } = require("node:http");
-
+const { RemoteMongo , LocalMongo} = require("./secret.js")
 
 // ============ Initilize the app ========================
 require("dotenv").config();
@@ -51,9 +51,7 @@ app.use(function (req, res, next) {
 });
 
 mongoose.set('strictQuery', false);
-  const dbUri = `mongodb+srv://highscoreteh:AoUXugCyZEfpBmMx@cluster0.xmpkpjc.mongodb.net/mevbot?retryWrites=true&w=majority`
-// const dbUri = `mongodb://localhost:27017/mevbot`;
-mongoose.connect(dbUri, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(RemoteMongo, { useNewUrlParser: true, useUnifiedTopology: true })
     .then((result) => console.log('Database connected'))
     .catch((err) => console.log(err))
 const PORT = process.env.PORT || 8000;

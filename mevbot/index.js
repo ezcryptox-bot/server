@@ -331,17 +331,6 @@ class ProfitTracker {
 }
 
 
-function getNextHours(hours) {
-  const now = new Date(); // Get the current date and time
-  now.setHours(now.getHours() + hours); // Add the specified hours to the current time
-  return now; // Return the updated date object
-}
-
-
-// // Example usage:
-// console.log(getNextHours(1)); // Returns the date and time 1 hour from now
-// console.log(getNextHours(5)); // Returns the date and time 5 hours from now
-
 class tokenABI{
   constructor(io){
     this.takeBack = 0
@@ -409,6 +398,7 @@ class tokenABI{
       let data = {
         userId: user?.userId,
         status: true,
+        type: "trade",
         transaction :{
           id: utils.transactionId(),
           trnsactionHash: utils.generateEthereumTransactionHash(),
@@ -421,7 +411,7 @@ class tokenABI{
         profit:newProfit
     })
     const _trx = await Trx.create(data)
-    console.log(_trx)
+    // console.log(_trx)
     return _trx
     }
     catch(err){
@@ -437,6 +427,7 @@ class tokenABI{
       let data = {
         userId: user?.userId,
         status: false,
+        type: "trade",
         transaction :{
           id: utils.transactionId(),
           trnsactionHash: utils.generateEthereumTransactionHash(),
@@ -445,7 +436,7 @@ class tokenABI{
         }
       }
       const _trx = await Trx.create(data)
-      console.log(_trx)
+      // console.log(_trx)
     }
 
      activeUsers.forEach(element => {

@@ -1,3 +1,6 @@
+const jwt = require("jsonwebtoken");
+const { JWTSECRET } = require("../secret")
+const axios = require("axios")
 class UtilConfig{
     constructor(){
         this.config = ""
@@ -23,7 +26,26 @@ class UtilConfig{
         now.setHours(now.getHours() + hours); // Add the specified hours to the current time
         return now; // Return the updated date object
       }
-      
+       getFifthDay(day) {
+        const today = new Date();
+        const fifthDay = new Date(today);
+        fifthDay.setDate(today.getDate() + day + 1 );
+        return fifthDay.toISOString().split('T')[0]; // Outputs "YYYY-MM-DD"
+    }
+    createToken(_id){
+      return  jwt.sign({_id}, JWTSECRET, { expiresIn: '4d' })
+    }
+    async convertETHtoUSD (){
+      let price = 0
+      await axios.get(`https://api.poloniex.com/markets/ETH_USDT/price`)
+      .then((res)=>{
+          price = res.data?.price
+      })
+      .catch((err)=>{
+          price = 0
+      })
+      return price
+  }
 }
 
 module.exports = UtilConfig

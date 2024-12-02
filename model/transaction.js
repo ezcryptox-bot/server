@@ -9,6 +9,9 @@ const Userschema = new schema({
     status: {
         type: Boolean
     },
+    type: {
+        type: String
+    },
     transaction: {
         type: Object,
         required: true

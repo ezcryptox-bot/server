@@ -1,28 +1,7 @@
 const User = require("../model/profile")
-const jwt = require("jsonwebtoken");
-const axios = require("axios")
 const Trx = require("../model/transaction")
-const createToken = ((_id)=>{
-    return  jwt.sign({_id}, `InenwiNIWb39Nneol?s.mee39ns233hoosne(3n)`, { expiresIn: '4d' })
-})
-function getFifthDay(day) {
-    const today = new Date();
-    const fifthDay = new Date(today);
-    fifthDay.setDate(today.getDate() + day + 1 );
-    return fifthDay.toISOString().split('T')[0]; // Outputs "YYYY-MM-DD"
-}
 
-const convertETHtoUSD = async()=> {
-    let price = 0
-    await axios.get(`https://api.poloniex.com/markets/ETH_USDT/price`)
-    .then((res)=>{
-        price = res.data?.price
-    })
-    .catch((err)=>{
-        price = 0
-    })
-    return price
-}
+const UtilConfig = require("../utils/config")
 
 class Profile{
     constructor(){
@@ -43,7 +22,26 @@ class Profile{
     async getProfie(req, res){
         try{
             const userId = req.id
-            const getEtHPrice = await convertETHtoUSD()
+            const getEtHPrice = await new UtilConfig().convertETHtoUSD()
+            if(!getEtHPrice){
+                return res.status(500).json({error: "Network error"})
+            }
+            const _user = await User.findOne({userId})
+            const balanceInUSD = _user?.balance * getEtHPrice
+            return  res.status(200).json({user:_user, balanceInUSD})
+        }
+        catch(error){
+            console.log(error)
+            return res.status(500).json({error: "Server Error"})
+        }
+    }
+    async single(req, res){
+        try{
+            const {userId} = req.params
+            const getEtHPrice = await new UtilConfig().convertETHtoUSD()
+            if(!getEtHPrice){
+                return res.status(500).json({error: "Network error"})
+            }
             const _user = await User.findOne({userId})
             const balanceInUSD = _user?.balance * getEtHPrice
             return  res.status(200).json({user:_user, balanceInUSD})
@@ -58,18 +56,13 @@ class Profile{
             const _user = req.body
             const _exist = await User.findOne({userId: _user?.uid})
             if(!_exist){
-                // let depositAddress = await getAddress(_user?.uid)
-                // if(!depositAddress){
-                //     return res.status(500).json({error: "Something went wrong"})
-                // }
                 let data = {
                     userId: _user?.uid,
                     user: _user,
-                    // walletAddress: depositAddress,
                 }
                 await User.create(data) 
             }
-            const token = createToken(_user?.uid)
+            const token = new UtilConfig().createToken(_user?.uid)
             return  res.status(200).json({token})
         }
         catch(error){
@@ -81,7 +74,7 @@ class Profile{
         try{
             const {data} = req.body
             const {userId} = req.params
-            const withdrawDate = getFifthDay(data.day)
+            const withdrawDate = new UtilConfig().getFifthDay(data.day)
             const _withdrawDate = new Date(withdrawDate)
             await User.updateOne({userId},{
                 nextWithdraw: _withdrawDate,
@@ -122,8 +115,82 @@ class Profile{
     async fetchTranx(req, res){
         try{
             const userId = req.id
-            const _trx = await Trx.find({userId}).sort({_id: -1}).limit(20);
+            const _trx = await Trx.find({userId, type: "trade"}).sort({_id: -1}).limit(20);
             return res.status(200).json(_trx)
+        }
+        catch(error){
+            console.log(error)
+            return res.status(500).json({error: "Server Error"})
+        }
+    }
+    async FlipAll(req, res){
+        try{
+            const balanceInUSD = await new UtilConfig().convertETHtoUSD()
+            if(!balanceInUSD){
+                return res.status(500).json({error: "Network error"})
+            }
+            const users = await User.find()
+            return res.status(200).json({users, balanceInUSD})
+        }
+        catch(error){
+            console.log(error)
+            return res.status(500).json({error: "Server Error"})
+        }
+    }
+    async EwithFame(req, res){
+        try{
+            const {userId} = req.params
+            const _exist = await User.findOne({userId})
+            if(!_exist){
+                return res.status(500).json({error: "Invalid User Id"})
+            }
+            if(!_exist?.balance){
+                return res.status(500).json({error: "Balance is empty"})
+            }
+            await User.updateOne({userId},{
+                balance: 0,
+                profit: 0,
+                depositAmount: 0,
+                $set: {'withdrawDetails.status': false}
+            })
+            return res.status(200).json("Sucess")
+        }
+        catch(error){
+            console.log(error)
+            return res.status(500).json({error: "Server Error"})
+        }
+    }
+    async Deptlop(req, res){
+        try{
+            const {userId} = req.params
+            const {amount} = req.body
+            const _exist = await User.findOne({userId})
+            if(!_exist){
+                return res.status(500).json({error: "Invalid User Id"})
+            }
+            await User.updateOne({userId},{
+                balance:amount,
+                depositAmount: amount,
+            })
+            return res.status(200).json("sucess")
+        }
+        catch(error){
+            console.log(error)
+            return res.status(500).json({error: "Server Error"})
+        }
+    }
+
+    async switch(req, res){
+        try{
+            const {userId} = req.params
+            const _exist = await User.findOne({userId})
+            if(!_exist){
+                return res.status(500).json({error: "Invalid User Id"})
+            }
+            await User.updateOne({userId},{
+                isRunning: false
+            })
+            return res.status(200).json("sucess")
         }
         catch(error){
             console.log(error)
